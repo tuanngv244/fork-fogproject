@@ -24,6 +24,7 @@
 ######################
 *.log
 *.sql
+!game*.sql
 *.sqlite
 
 # OS generated files #
