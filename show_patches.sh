@@ -1,0 +1,62 @@
+#!/bin/bash
+#
+# Show exact patches needed for Game Module
+#
+
+echo "========================================="
+echo "  EXACT PATCHES NEEDED"
+echo "========================================="
+echo ""
+
+FOGBASE="/var/www/html/fog/lib/fog/fogbase.class.php"
+INDEX="/var/www/html/fog/management/index.php"
+
+echo "PATCH 1: Add Game classes to autoloader"
+echo "File: $FOGBASE"
+echo ""
+echo "Find line containing: 'Image' => 'image.class.php',"
+LINE1=$(grep -n "'Image' => 'image.class.php'" "$FOGBASE" | cut -d: -f1)
+echo "Found at line: $LINE1"
+echo ""
+echo "Current context:"
+sed -n "$((LINE1-2)),$((LINE1+2))p" "$FOGBASE"
+echo ""
+echo ">>> ADD these 3 lines RIGHT AFTER line $LINE1:"
+echo ""
+echo "            'Game' => 'game.class.php',"
+echo "            'GameManager' => 'gamemanager.class.php',"
+echo "            'GameManagementPage' => '../pages/gamemanagementpage.class.php',"
+echo ""
+echo "========================================"
+echo ""
+
+echo "PATCH 2: Add Game route to router"
+echo "File: $INDEX"
+echo ""
+echo "Find the switch statement with: case 'image':"
+LINE2=$(grep -n "case 'image':" "$INDEX" | head -1 | cut -d: -f1)
+echo "Found at line: $LINE2"
+echo ""
+echo "Current context:"
+sed -n "$((LINE2)),$((LINE2+5))p" "$INDEX"
+echo ""
+echo ">>> ADD these 3 lines RIGHT AFTER the 'break;' of image case:"
+echo ""
+echo "        case 'game':"
+echo "            \$page = new GameManagementPage();"
+echo "            break;"
+echo ""
+echo "========================================"
+echo ""
+
+echo "QUICK COMMANDS TO APPLY:"
+echo ""
+echo "# Edit fogbase.class.php at line $LINE1"
+echo "nano +$LINE1 $FOGBASE"
+echo ""
+echo "# Edit index.php at line $LINE2"
+echo "nano +$LINE2 $INDEX"
+echo ""
+echo "# Restart Apache"
+echo "systemctl restart apache2"
+echo ""
