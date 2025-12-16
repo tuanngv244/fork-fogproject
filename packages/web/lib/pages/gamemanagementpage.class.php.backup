@@ -6,7 +6,7 @@
  *
  * @category GameManagementPage
  * @package  FOGProject
- * @author   Your Name <your.email@example.com>
+ * @author   FOG Project
  * @license  http://opensource.org/licenses/gpl-3.0 GPLv3
  * @link     https://fogproject.org
  */
@@ -15,7 +15,7 @@
  *
  * @category GameManagementPage
  * @package  FOGProject
- * @author   Your Name <your.email@example.com>
+ * @author   FOG Project
  * @license  http://opensource.org/licenses/gpl-3.0 GPLv3
  * @link     https://fogproject.org
  */
@@ -27,7 +27,6 @@ class GameManagementPage extends FOGPage
      * @var string
      */
     public $node = 'game';
-    
     /**
      * Initializes the game page class.
      *
@@ -41,12 +40,10 @@ class GameManagementPage extends FOGPage
          * The real name not using our name passer.
          */
         $this->name = 'Game Management';
-        
         /**
          * Pull in the FOGPage class items.
          */
         parent::__construct($this->name);
-        
         /**
          * Get our nicer names.
          */

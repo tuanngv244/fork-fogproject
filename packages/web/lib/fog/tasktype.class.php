@@ -327,4 +327,28 @@ class TaskType extends FOGController
             )
             ;
     }
+    /**
+     * Returns if this is a game sync tasking.
+     *
+     * @param bool $nums To return ids?
+     *
+     * @return bool|array
+     */
+    public function isGameSync($nums = false)
+    {
+        $id = (
+            $this instanceof Task ?
+            'typeID' :
+            'id'
+        );
+
+        if ($nums) {
+            return array(25);
+        }
+
+        return
+            $this->isValid()
+            && $this->get($id) == 25
+            ;
+    }
 }

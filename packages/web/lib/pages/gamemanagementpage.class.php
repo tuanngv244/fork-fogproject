@@ -6,7 +6,7 @@
  *
  * @category GameManagementPage
  * @package  FOGProject
- * @author   Your Name <your.email@example.com>
+ * @author   FOG Project
  * @license  http://opensource.org/licenses/gpl-3.0 GPLv3
  * @link     https://fogproject.org
  */
@@ -15,7 +15,7 @@
  *
  * @category GameManagementPage
  * @package  FOGProject
- * @author   Your Name <your.email@example.com>
+ * @author   FOG Project
  * @license  http://opensource.org/licenses/gpl-3.0 GPLv3
  * @link     https://fogproject.org
  */
@@ -27,7 +27,6 @@ class GameManagementPage extends FOGPage
      * @var string
      */
     public $node = 'game';
-    
     /**
      * Initializes the game page class.
      *
@@ -40,19 +39,16 @@ class GameManagementPage extends FOGPage
         /**
          * The real name not using our name passer.
          */
-        $this->name = 'Game Management';
-        
+        $this->name = _('Game Management');
         /**
          * Pull in the FOGPage class items.
          */
         parent::__construct($this->name);
-        
         /**
          * Get our nicer names.
          */
         global $id;
         global $sub;
-        
         /**
          * If the id is set load our sub-side menu.
          */
@@ -61,24 +57,25 @@ class GameManagementPage extends FOGPage
              * The other sub menu items.
              */
             $this->subMenu = array(
-                "$this->linkformat#game-gen" => 'General',
-                $this->delformat => 'Delete',
+                "$this->linkformat#game-gen" => _('General'),
+                $this->delformat => _('Delete'),
             );
-            
             /**
              * The notes for this item.
              */
             $this->notes = array(
-                'Game Name' => $this->obj->get('name'),
-                'Download Path' => $this->obj->get('downloadPath'),
-                'State' => $this->obj->getStateDisplay(),
-                'Size' => $this->obj->getSize(),
-                'Last Update' => $this->obj->get('lastUpdate'),
+                _('Game Name') => $this->obj->get('name'),
+                _('Game Path') => $this->obj->get('downloadPath'),
+                _('Game Version') => $this->obj->get('version'),
+                _('Publisher') => $this->obj->get('publisher') ?: _('Not set'),
+                _('Last Updated') => $this->obj->get('lastUpdate'),
             );
         }
-        
         /**
          * Allow custom hooks/changes to: Submenu data via.
+         *
+         * Menu, submenu, id, notes, the main object,
+         * linkformat, delformat, and membership information.
          */
         self::$HookManager
             ->processEvent(
@@ -91,9 +88,9 @@ class GameManagementPage extends FOGPage
                     'object' => &$this->obj,
                     'linkformat' => &$this->linkformat,
                     'delformat' => &$this->delformat,
+                    'membership' => &$this->membership
                 )
             );
-        
         /**
          * The header data for list/search.
          */
@@ -104,47 +101,36 @@ class GameManagementPage extends FOGPage
             . '<input type="checkbox" name="toggle-checkbox" '
             . 'class="toggle-checkboxAction" id="toggler"/>'
             . '</label>',
-            _('Game ID'),
             _('Game Name'),
-            _('State'),
-            _('Update'),
-            _('Local Update Time'),
-            _('Size (MB)'),
-            _('Download Path'),
-            _('Run Count'),
-            _('Last Run Time'),
+            _('Storage Group'),
+            _('Game Size'),
+            _('Last Modified'),
         );
-        
         /**
          * The template for the list/search elements.
          */
         $this->templates = array(
             '${protected}',
             '${enabled}',
-            '<label for="game-${id}">'
+            '<label for="toggler1">'
             . '<input type="checkbox" name="game[]" '
-            . 'value="${id}" class="toggle-action" id="game-${id}"/>'
-            . '</label>',
-            '${id}',
+            . 'value="${id}" class="toggle-action" id="'
+            . 'toggler1"/></label>',
             '<a href="?node='
             . $this->node
             . '&sub=edit&id=${id}" '
             . 'data-toggle="tooltip" data-placement="right" '
             . 'title="'
             . _('Edit')
-            . ': ${name}">'
-            . '<i class="fa fa-gamepad"></i> ${name}</a>'
+            . ': ${name}">${name} - ${id}</a>'
             . '<br/>'
-            . '<small>${description}</small>',
-            '${state}',
-            '${lastUpdate}',
-            '${localUpdateTime}',
+            . '<small>${game_type}</small>'
+            . '<br/>'
+            . '<small>${sync_method}</small>',
+            '${storageGroup}',
             '${size}',
-            '${downloadPath}',
-            '${runCount}',
-            '${lastRunTime}',
+            '${modified}',
         );
-        
         /**
          * The attributes for the table items.
          */
@@ -158,114 +144,94 @@ class GameManagementPage extends FOGPage
                 'class' => 'filter-false'
             ),
             array(
-                'width' => 5,
+                'width' => 16,
                 'class' => 'parser-false filter-false'
-            ),
-            array(
-                'width' => 8,
             ),
             array(),
             array(
                 'class' => 'col-xs-1'
             ),
             array(
-                'class' => 'col-xs-2'
-            ),
-            array(
-                'class' => 'col-xs-2'
-            ),
-            array(
                 'class' => 'col-xs-1'
             ),
-            array(
-                'class' => 'col-xs-2'
-            ),
-            array(
-                'class' => 'col-xs-1'
-            ),
-            array(
-                'class' => 'col-xs-2'
-            ),
+            array('class' => 'col-xs-1')
         );
-        
         /**
          * Lambda function to return data either by list or search.
+         *
+         * @param object $Game the object to use.
+         *
+         * @return void
          */
         self::$returnData = function (&$Game) {
             /**
-             * Store variables
+             * Stores the game size.
+             */
+            $gameSize = self::formatByteSize(
+                $Game->size
+            );
+            /**
+             * The id.
              */
             $id = $Game->id;
+            /**
+             * The name.
+             */
             $name = $Game->name;
+            /**
+             * The description.
+             */
             $description = $Game->description;
-            $downloadPath = $Game->downloadPath;
-            $state = $Game->getStateDisplay();
-            $lastUpdate = $Game->lastUpdate;
-            $localUpdateTime = $Game->localUpdateTime;
-            $runCount = $Game->runCount ? $Game->runCount : 0;
-            $lastRunTime = $Game->lastRunTime;
-            
             /**
-             * Format dates
+             * The modified date.
              */
-            if (self::validDate($lastUpdate)) {
-                $lastUpdate = self::formatTime($lastUpdate, 'Y-m-d H:i:s');
-            } else {
-                $lastUpdate = 'Never';
-            }
-            
-            if (self::validDate($localUpdateTime)) {
-                $localUpdateTime = self::formatTime($localUpdateTime, 'Y-m-d H:i:s');
-            } else {
-                $localUpdateTime = 'Never';
-            }
-            
-            if (self::validDate($lastRunTime)) {
-                $lastRunTime = self::formatTime($lastRunTime, 'Y-m-d H:i:s');
-            } else {
-                $lastRunTime = 'Never';
-            }
-            
+            $date = $Game->lastUpdate;
             /**
-             * Format size
+             * If the date is valid format in Y-m-d H:i:s
+             * and if not set to no valid data.
              */
-            $size = self::formatByteSize($Game->size);
-            
-            /**
-             * Protection icon
-             */
-            if ($Game->protected < 1) {
-                $protected = sprintf(
-                    '<i class="fa fa-unlock fa-1x icon hand" '
-                    . 'data-toggle="tooltip" data-placement="right" '
-                    . 'title="%s"></i>',
-                    'Not protected'
-                );
+            if (self::validDate($date)) {
+                $date = self::formatTime($date, 'Y-m-d H:i:s');
             } else {
-                $protected = sprintf(
-                    '<i class="fa fa-lock fa-1x icon hand" '
-                    . 'data-toggle="tooltip" data-placement="right" '
-                    . 'title="%s"></i>',
-                    'Protected'
-                );
+                $date = _('Never');
             }
-            
             /**
-             * Enabled icon
+             * The version.
              */
-            if ($Game->isEnabled) {
+            $version = $Game->version;
+            if (!$version) {
+                $version = _('Not set');
+            }
+            /**
+             * The publisher.
+             */
+            $publisher = $Game->publisher;
+            if (!$publisher) {
+                $publisher = _('Not set');
+            }
+            /**
+             * If the game is enabled or not.
+             */
+            if ($Game->state == 1) {
                 $enabled = '<i class="fa fa-check-circle green" '
                     . 'title="'
-                    . 'Enabled'
+                    . _('Enabled')
                     . '" data-toggle="tooltip" data-placement="top">'
                     . '</i>';
             } else {
-                $enabled = '<i class="fa fa-times-circle red" '
+                $enabled
+                    = '<i class="fa fa-times-circle red" '
                     . 'title="'
-                    . 'Disabled'
+                    . _('Disabled')
                     . '" data-toggle="tooltip" data-placement="top">'
                     . '</i>';
             }
+            
+            $protected = '<i class="fa fa-unlock fa-1x icon hand" '
+                . 'data-toggle="tooltip" data-placement="right" '
+                . 'title="'
+                . _('Not protected')
+                . '"></i>';
             
             /**
              * Store the data.
@@ -274,227 +240,434 @@ class GameManagementPage extends FOGPage
                 'id' => $id,
                 'name' => $name,
                 'description' => $description,
-                'downloadPath' => $downloadPath,
-                'state' => $state,
-                'lastUpdate' => $lastUpdate,
-                'localUpdateTime' => $localUpdateTime,
-                'size' => $size,
-                'runCount' => $runCount,
-                'lastRunTime' => $lastRunTime,
+                'storageGroup' => $publisher,
+                'modified' => $date,
+                'size' => $gameSize,
+                'game_type' => $version,
+                'sync_method' => _('Direct'),
                 'protected' => $protected,
-                'enabled' => $enabled,
+                'enabled' => $enabled
+            );
+            /**
+             * Cleanup.
+             */
+            unset(
+                $id,
+                $name,
+                $description,
+                $date,
+                $gameSize,
+                $version,
+                $publisher,
+                $protected,
+                $enabled,
+                $Game
             );
         };
     }
-    
     /**
-     * Display page.
+     * The form to display when adding a new game
+     * definition.
      *
      * @return void
      */
-    public function index()
-    {
-        $this->title = 'All Games';
-        
-        /**
-         * Attributes
-         */
-        $this->attributes = array(
-            array(),
-            array(),
-        );
-        
-        /**
-         * Templates
-         */
-        $this->templates = array(
-            '${field}',
-            '${input}',
-        );
-        
-        /**
-         * Field data
-         */
-        $fields = array(
-            'Total Games' => self::getClass('GameManager')->count(),
-            'Total Size' => self::formatByteSize(
-                self::getClass('GameManager')->getTotalSize()
-            ),
-            'Downloaded' => self::getClass('GameManager')
-                ->count(array('state' => 2)),
-            'Downloading' => self::getClass('GameManager')
-                ->count(array('state' => 1)),
-        );
-        
-        foreach ((array)$fields as $field => &$input) {
-            $this->data[] = array(
-                'field' => $field,
-                'input' => $input,
-            );
-            unset($input);
-        }
-        
-        /**
-         * Output the information.
-         */
-        $this->render();
-        
-        unset($this->data);
-        
-        /**
-         * Reset our elements back for list
-         */
-        $this->resetRequest();
-        
-        /**
-         * Set title
-         */
-        $this->title = _('All Games');
-        
-        /**
-         * Find items
-         */
-        $this->data = array();
-        
-        Route::listem('game');
-        
-        /**
-         * Output the list.
-         */
-        $this->render();
-    }
-    
-    /**
-     * Search page.
-     *
-     * @return void
-     */
-    public function search()
+    public function add()
     {
         /**
-         * Present the search.
+         * Setup our variables for back up/incorrect settings without
+         * having to lose all the work done previously.
          */
-        $this->data = array();
-        
-        Route::searchm('game');
-        
-        $this->render();
-    }
-    
-    /**
-     * Game form display.
-     *
-     * @return void
-     */
-    public function gameForm()
-    {
-        unset(
-            $this->data,
-            $this->form
-        );
-        
+        $storagegroup = (int)filter_input(INPUT_POST, 'storagegroup');
+        $gametype = (int)filter_input(INPUT_POST, 'gametype');
+        $name = filter_input(INPUT_POST, 'name');
+        $desc = filter_input(INPUT_POST, 'description');
+        $file = filter_input(INPUT_POST, 'file');
+        $version = filter_input(INPUT_POST, 'version');
+        $syncmethod = filter_input(INPUT_POST, 'syncmethod');
+        /**
+         * Set title to display.
+         */
+        $this->title = _('New Game');
+        /**
+         * Setup our attributes for rows.
+         */
         $this->attributes = array(
             array('class' => 'col-xs-4'),
             array('class' => 'col-xs-8 form-group'),
         );
-        
+        /**
+         * Setup our templates for rows.
+         */
         $this->templates = array(
             '${field}',
             '${input}',
         );
-        
-        $name = filter_input(INPUT_POST, 'name') ?: $this->obj->get('name');
-        $description = filter_input(INPUT_POST, 'description') ?: $this->obj->get('description');
-        $icon = filter_input(INPUT_POST, 'icon') ?: $this->obj->get('icon');
-        $downloadPath = filter_input(INPUT_POST, 'downloadPath') ?: $this->obj->get('downloadPath');
-        $executable = filter_input(INPUT_POST, 'executable') ?: $this->obj->get('executable');
-        $parameters = filter_input(INPUT_POST, 'parameters') ?: $this->obj->get('parameters');
-        $archivePath = filter_input(INPUT_POST, 'archivePath') ?: $this->obj->get('archivePath');
-        $syncServer = filter_input(INPUT_POST, 'syncServer') ?: $this->obj->get('syncServer');
-        $driveLetter = filter_input(INPUT_POST, 'driveLetter') ?: $this->obj->get('driveLetter');
-        $state = filter_input(INPUT_POST, 'state') !== null ? filter_input(INPUT_POST, 'state') : $this->obj->get('state');
-        
-        $protected = isset($_POST['protected']) ? (int)$_POST['protected'] : $this->obj->get('protected');
-        $isEnabled = isset($_POST['isEnabled']) ? (int)$_POST['isEnabled'] : $this->obj->get('isEnabled');
-        $autoUpdate = isset($_POST['autoUpdate']) ? (int)$_POST['autoUpdate'] : $this->obj->get('autoUpdate');
-        
-        $stateSelect = sprintf(
-            '<select name="state" id="game-state" class="form-control">'
-            . '<option value="0"%s>Not Downloaded</option>'
-            . '<option value="1"%s>Downloading</option>'
-            . '<option value="2"%s>Downloaded</option>'
-            . '<option value="3"%s>Installing</option>'
-            . '<option value="4"%s>Installed</option>'
-            . '<option value="5"%s>Updating</option>'
-            . '<option value="6"%s>Error</option>'
-            . '</select>',
-            $state == 0 ? ' selected' : '',
-            $state == 1 ? ' selected' : '',
-            $state == 2 ? ' selected' : '',
-            $state == 3 ? ' selected' : '',
-            $state == 4 ? ' selected' : '',
-            $state == 5 ? ' selected' : '',
-            $state == 6 ? ' selected' : ''
-        );
-        
-        $fields = array(
-            '<label for="game-name">Game Name *</label>' => 
-                '<div class="input-group">'
-                . '<input class="form-control" type="text" name="name" id="game-name" value="' . htmlspecialchars($name) . '" required/>'
-                . '</div>',
-            '<label for="game-description">Description</label>' => 
-                '<div class="input-group">'
-                . '<textarea class="form-control" name="description" id="game-description">' . htmlspecialchars($description) . '</textarea>'
-                . '</div>',
-            '<label for="game-icon">Icon URL</label>' => 
-                '<div class="input-group">'
-                . '<input class="form-control" type="text" name="icon" id="game-icon" value="' . htmlspecialchars($icon) . '"/>'
-                . '</div>',
-            '<label for="game-download-path">Download Path *</label>' => 
-                '<div class="input-group">'
-                . '<input class="form-control" type="text" name="downloadPath" id="game-download-path" value="' . htmlspecialchars($downloadPath) . '" required/>'
-                . '</div>',
-            '<label for="game-executable">Executable</label>' => 
-                '<div class="input-group">'
-                . '<input class="form-control" type="text" name="executable" id="game-executable" value="' . htmlspecialchars($executable) . '"/>'
-                . '</div>',
-            '<label for="game-parameters">Parameters</label>' => 
-                '<div class="input-group">'
-                . '<input class="form-control" type="text" name="parameters" id="game-parameters" value="' . htmlspecialchars($parameters) . '"/>'
-                . '</div>',
-            '<label for="game-archive-path">Archive Path</label>' => 
-                '<div class="input-group">'
-                . '<input class="form-control" type="text" name="archivePath" id="game-archive-path" value="' . htmlspecialchars($archivePath) . '"/>'
-                . '</div>',
-            '<label for="game-sync-server">Sync Server</label>' => 
-                '<div class="input-group">'
-                . '<input class="form-control" type="text" name="syncServer" id="game-sync-server" value="' . htmlspecialchars($syncServer) . '"/>'
-                . '</div>',
-            '<label for="game-drive-letter">Drive Letter</label>' => 
-                '<div class="input-group">'
-                . '<input class="form-control" type="text" name="driveLetter" id="game-drive-letter" value="' . htmlspecialchars($driveLetter) . '" maxlength="3"/>'
-                . '</div>',
-            '<label for="game-state">State</label>' => $stateSelect,
-            '<label for="game-protected">Protected</label>' => 
-                '<input type="checkbox" name="protected" id="game-protected"' . ($protected ? ' checked' : '') . '/>',
-            '<label for="game-enabled">Enabled</label>' => 
-                '<input type="checkbox" name="isEnabled" id="game-enabled"' . ($isEnabled ? ' checked' : '') . '/>',
-            '<label for="game-auto-update">Auto Update</label>' => 
-                '<input type="checkbox" name="autoUpdate" id="game-auto-update"' . ($autoUpdate ? ' checked' : '') . '/>',
-            '<label for="add">&nbsp;</label>' => 
-                '<button type="submit" class="btn btn-info btn-block" id="add">'
-                . ($this->obj->get('id') ? 'Update' : 'Add')
-                . '</button>',
-        );
-        
-        foreach ((array)$fields as $field => &$input) {
-            $this->data[] = array(
-                'field' => $field,
-                'input' => $input,
+        /**
+         * If the storagegroup is > 0, set the group ID to that
+         * otherwise try getting the default group.
+         */
+        if ($storagegroup > 0) {
+            $sgID = $storagegroup;
+        } else {
+            $sgID = @min(
+                self::getSubObjectIDs('StorageGroup')
             );
-            unset($input);
         }
-        
+        /**
+         * Load the storage group.
+         */
+        $StorageGroup = new StorageGroup($sgID);
+        $StorageGroups = self::getClass('StorageGroupManager')
+            ->buildSelectBox($sgID);
+        /**
+         * Get the master node for path display.
+         */
+        $StorageNode = $StorageGroup->getMasterStorageNode();
+        $gtID = 1;
+        if ($gametype > 0) {
+            $gtID = $gametype;
+        }
+        $GameTypes = self::getClass('GameTypeManager')
+            ->buildSelectBox($gtID);
+        if (!isset($syncmethod)) {
+            $syncmethod = 'rsync';
+        }
+        $syncMethodOptions = sprintf(
+            '<select name="syncmethod" id="syncmethod" class="form-control">'
+            . '<option value="rsync"%s>%s</option>'
+            . '<option value="robocopy"%s>%s</option>'
+            . '<option value="smb"%s>%s</option>'
+            . '<option value="nfs"%s>%s</option>'
+            . '</select>',
+            (
+                $syncmethod == 'rsync' ?
+                ' selected' :
+                ''
+            ),
+            _('Rsync'),
+            (
+                $syncmethod == 'robocopy' ?
+                ' selected' :
+                ''
+            ),
+            _('Robocopy'),
+            (
+                $syncmethod == 'smb' ?
+                ' selected' :
+                ''
+            ),
+            _('SMB'),
+            (
+                $syncmethod == 'nfs' ?
+                ' selected' :
+                ''
+            ),
+            _('NFS')
+        );
+        $fields = array(
+            '<label for="gName">'
+            . _('Game Name')
+            . '</label>' => '<div class="input-group">'
+            . '<input class="form-control gamename-input" type="text" '
+            . 'name="name" id="gName" '
+            . 'value="'
+            . $name
+            . '"/>'
+            . '</div>',
+            '<label for="description">'
+            . _('Game Description')
+            . '</label>' => '<div class="input-group">'
+            . '<textarea name="description" class="form-control gamedesc-input" '
+            . 'id="description">'
+            . $desc
+            . '</textarea>',
+            '<label for="version">'
+            . _('Game Version')
+            . '</label>' => '<div class="input-group">'
+            . '<input class="form-control gameversion-input" type="text" '
+            . 'name="version" id="version" '
+            . 'value="'
+            . $version
+            . '"/>'
+            . '</div>',
+            '<label for="storagegroup">'
+            . _('Storage Group')
+            . '</label>' => $StorageGroups,
+            '<label for="gFile">'
+            . _('Game Path')
+            . '</label>' => '<div class="input-group">'
+            . '<span class="input-group-addon">'
+            . $StorageNode->get('path')
+            . '/'
+            . '</span>'
+            . '<input type="text" class="form-control gamefile-input" '
+            . 'name="file" id="gFile" '
+            . 'value="'
+            . $file
+            . '"/>',
+            '<label for="gametype">'
+            . _('Game Type')
+            . '</label>' => $GameTypes,
+            '<label for="syncmethod">'
+            . _('Sync Method')
+            . '</label>' => $syncMethodOptions,
+            '<label for="isEnabled">'
+            . _('Game Enabled')
+            . '</label>' => '<input type="checkbox" '
+            . 'name="isEnabled" id="isEnabled" checked/>',
+            '<label for="toRep">'
+            . _('Replicate?')
+            . '</label>' => '<input type="checkbox" '
+            . 'name="toReplicate" id="toRep" checked/>',
+            '<label for="add">'
+            . _('Create Game')
+            . '</label>' => '<button class="btn btn-info btn-block" type="submit" '
+            . 'id="add" name="add">'
+            . _('Add')
+            . '</button>'
+        );
+        self::$HookManager
+            ->processEvent(
+                'GAME_ADD',
+                array(
+                    'headerData' => &$this->headerData,
+                    'data' => &$this->data,
+                    'templates' => &$this->templates,
+                    'attributes' => &$this->attributes
+                )
+            );
+        array_walk($fields, $this->fieldsToData);
+        unset($fields);
+        self::$HookManager
+            ->processEvent(
+                'GAME_ADD_POST',
+                array(
+                    'headerData' => &$this->headerData,
+                    'data' => &$this->data,
+                    'templates' => &$this->templates,
+                    'attributes' => &$this->attributes
+                )
+            );
+        echo '<div class="col-xs-9">';
+        echo '<div class="panel panel-info">';
+        echo '<div class="panel-heading text-center">';
+        echo '<h4 class="title">';
+        echo $this->title;
+        echo '</h4>';
+        echo '</div>';
+        echo '<div class="panel-body">';
+        echo '<form class="form-horizontal" method="post" action="'
+            . $this->formAction
+            . '">';
+        $this->render(12);
+        echo '</form>';
+        echo '</div>';
+        echo '</div>';
+        echo '</div>';
+    }
+    /**
+     * Edit game page.
+     *
+     * @return void
+     */
+    public function edit()
+    {
+        echo '<div class="col-xs-9 tab-content">';
+        $this->gameGeneral();
+        echo '</div>';
+    }
+    /**
+     * Actually submit the creation of the game.
+     *
+     * @return void
+     */
+    public function addPost()
+    {
+        self::$HookManager->processEvent('GAME_ADD_POST');
+        $file = trim(
+            filter_input(INPUT_POST, 'file')
+        );
+        $name = trim(
+            filter_input(INPUT_POST, 'name')
+        );
+        $desc = trim(
+            filter_input(INPUT_POST, 'description')
+        );
+        $version = trim(
+            filter_input(INPUT_POST, 'version')
+        );
+        $storagegroup = (int)filter_input(INPUT_POST, 'storagegroup');
+        $gametype = (int)filter_input(INPUT_POST, 'gametype');
+        $syncmethod = filter_input(INPUT_POST, 'syncmethod');
+        $isenabled = (int)isset($_POST['isEnabled']);
+        $torep = (int)isset($_POST['toReplicate']);
+        try {
+            if (self::getClass('GameManager')->exists($name)) {
+                throw new Exception(_('A game already exists with this name!'));
+            }
+            if (self::getClass('GameManager')->exists($file, '', 'downloadPath')) {
+                throw new Exception(
+                    sprintf(
+                        '%s, %s.',
+                        _('Please choose a different path'),
+                        _('this one is already in use by another game')
+                    )
+                );
+            }
+            $Game = self::getClass('Game')
+                ->set('name', $name)
+                ->set('description', $desc)
+                ->set('version', $version)
+                ->set('downloadPath', $file)
+                ->set('state', $isenabled);
+            if (!$Game->save()) {
+                throw new Exception(_('Add game failed!'));
+            }
+            $hook = 'GAME_ADD_SUCCESS';
+            $msg = json_encode(
+                array(
+                    'msg' => _('Game added!'),
+                    'title' => _('Game Create Success')
+                )
+            );
+        } catch (Exception $e) {
+            $hook = 'GAME_ADD_FAIL';
+            $msg = json_encode(
+                array(
+                    'error' => $e->getMessage(),
+                    'title' => _('Game Create Fail')
+                )
+            );
+        }
+        self::$HookManager
+            ->processEvent(
+                $hook,
+                array('Game' => &$Game)
+            );
+        unset($Game);
+        echo $msg;
+        exit;
+    }
+    /**
+     * Display game general information.
+     *
+     * @return void
+     */
+    public function gameGeneral()
+    {
+        unset(
+            $this->data,
+            $this->form,
+            $this->templates,
+            $this->attributes,
+            $this->headerData
+        );
+        $this->attributes = array(
+            array('class' => 'col-xs-4'),
+            array('class' => 'col-xs-8 form-group'),
+        );
+        $this->templates = array(
+            '${field}',
+            '${input}',
+        );
+        $name = (
+            filter_input(INPUT_POST, 'name') ?: $this->obj->get('name')
+        );
+        $desc = (
+            filter_input(INPUT_POST, 'description') ?: $this->obj->get('description')
+        );
+        $version = (
+            filter_input(INPUT_POST, 'version') ?: $this->obj->get('version')
+        );
+        $isen = (int)isset($_POST['isEnabled']);
+        if (!$isen) {
+            $isen = $this->obj->get('isEnabled');
+        }
+        if ($isen) {
+            $isen = ' checked';
+        } else {
+            $isen = '';
+        }
+        $torep = (int)isset($_POST['toReplicate']);
+        if (!$torep) {
+            $torep = $this->obj->get('toReplicate');
+        }
+        if ($torep) {
+            $torep = ' checked';
+        } else {
+            $torep = '';
+        }
+        $toprot = (int)isset($_POST['protected_game']);
+        if (!$toprot) {
+            $toprot = $this->obj->get('protected');
+        }
+        if ($toprot) {
+            $toprot = ' checked';
+        } else {
+            $toprot = '';
+        }
+        $file = trim(
+            filter_input(INPUT_POST, 'file')
+        );
+        if (!$file) {
+            $file = $this->obj->get('downloadPath');
+        }
+        $fields = array(
+            '<label for="gName">'
+            . _('Game Name')
+            . '</label>' => '<div class="input-group">'
+            . '<input class="form-control gamename-input" type="text" '
+            . 'name="name" id="gName" '
+            . 'value="'
+            . $name
+            . '"/>'
+            . '</div>',
+            '<label for="description">'
+            . _('Game Description')
+            . '</label>' => '<div class="input-group">'
+            . '<textarea name="description" class="form-control gamedesc-input" '
+            . 'id="description">'
+            . $desc
+            . '</textarea>',
+            '<label for="version">'
+            . _('Game Version')
+            . '</label>' => '<div class="input-group">'
+            . '<input class="form-control gameversion-input" type="text" '
+            . 'name="version" id="version" '
+            . 'value="'
+            . $version
+            . '"/>'
+            . '</div>',
+            '<label for="gFile">'
+            . _('Game Path')
+            . '</label>' => '<div class="input-group">'
+            . '<input type="text" class="form-control gamefile-input" '
+            . 'name="file" id="gFile" '
+            . 'value="'
+            . $file
+            . '"/>',
+            '<label for="isEnabled">'
+            . _('Game Enabled')
+            . '</label>' => '<input type="checkbox" '
+            . 'name="isEnabled" id="isEnabled"'
+            . $isen
+            . '/>',
+            '<label for="updategen">'
+            . _('Make Changes?')
+            . '</label>' => '<button class="btn btn-info btn-block" type="submit" '
+            . 'id="updategen" name="update">'
+            . _('Update')
+            . '</button>'
+        );
+        self::$HookManager
+            ->processEvent(
+                'GAME_FIELDS',
+                array(
+                    'fields' => &$fields,
+                    'Game' => &$this->obj
+                )
+            );
+        array_walk($fields, $this->fieldsToData);
         self::$HookManager
             ->processEvent(
                 'GAME_EDIT',
@@ -505,192 +678,811 @@ class GameManagementPage extends FOGPage
                     'attributes' => &$this->attributes
                 )
             );
-        
-        echo '<form method="post" action="'
+        echo '<!-- General -->';
+        echo '<div class="tab-pane fade in active" id="game-gen">';
+        echo '<div class="panel panel-info">';
+        echo '<div class="panel-heading text-center">';
+        echo '<h4 class="title">';
+        echo _('Game General');
+        echo '</h4>';
+        echo '</div>';
+        echo '<div class="panel-body">';
+        echo '<form class="form-horizontal" method="post" action="'
             . $this->formAction
-            . '">';
-        
-        $this->render();
-        
+            . '&tab=game-gen">';
+        $this->render(12);
         echo '</form>';
+        echo '</div>';
+        echo '</div>';
+        echo '</div>';
+        unset(
+            $this->data,
+            $this->form,
+            $this->templates,
+            $this->attributes,
+            $this->headerData
+        );
     }
-    
     /**
-     * Add new game.
+     * Display game storage groups.
      *
      * @return void
      */
-    public function add()
+    public function gameStoragegroups()
     {
-        $this->title = _('New Game');
-        
-        unset($this->headerData);
-        
-        $this->attributes = array(
-            array(),
-            array(),
+        unset(
+            $this->data,
+            $this->form,
+            $this->templates,
+            $this->attributes,
+            $this->headerData
         );
-        
+        $this->headerData = array(
+            '<label for="toggler2">'
+            . '<input type="checkbox" name="toggle-checkboxgroup1" '
+            . 'class="toggle-checkbox1" id="toggler2"/>'
+            . '</label>',
+            _('Storage Group Name')
+        );
         $this->templates = array(
-            '${field}',
-            '${input}',
+            '<label for="sg-${storageGroup_id}">'
+            . '<input type="checkbox" name="storagegroup[]" class='
+            . '"toggle-group" id="sg-${storageGroup_id}" '
+            . 'value="${storageGroup_id}"/>'
+            . '</label>',
+            '<a href="?node=storage&editStorageGroup&id=${storageGroup_id}">'
+            . '${storageGroup_name}'
+            . '</a>'
         );
-        
-        echo '<div id="tab-container" class="tab-container">';
-        echo '<ul class="nav nav-tabs" role="tablist">';
-        echo '<li role="presentation" class="active">';
-        echo '<a href="#game-gen" aria-controls="game-gen" '
-            . 'role="tab" data-toggle="tab">';
-        echo _('General');
-        echo '</a>';
-        echo '</li>';
-        echo '</ul>';
-        echo '<div class="tab-content">';
-        echo '<div role="tabpanel" class="tab-pane active" id="game-gen">';
-        
-        $this->gameForm();
-        
-        echo '</div>';
-        echo '</div>';
-        echo '</div>';
-    }
-    
-    /**
-     * Add post.
-     *
-     * @return void
-     */
-    public function addPost()
-    {
-        self::$HookManager->processEvent('GAME_ADD_POST');
-        
-        try {
-            $name = trim($_REQUEST['name']);
-            if (empty($name)) {
-                throw new Exception(_('Game name is required'));
-            }
-            
-            $downloadPath = trim($_REQUEST['downloadPath']);
-            if (empty($downloadPath)) {
-                throw new Exception(_('Download path is required'));
-            }
-            
-            if (self::getClass('GameManager')->exists($name)) {
-                throw new Exception(_('Game name already exists'));
-            }
-            
-            $Game = self::getClass('Game')
-                ->set('name', $name)
-                ->set('description', trim($_REQUEST['description']))
-                ->set('icon', trim($_REQUEST['icon']))
-                ->set('downloadPath', $downloadPath)
-                ->set('executable', trim($_REQUEST['executable']))
-                ->set('parameters', trim($_REQUEST['parameters']))
-                ->set('archivePath', trim($_REQUEST['archivePath']))
-                ->set('syncServer', trim($_REQUEST['syncServer']))
-                ->set('driveLetter', trim($_REQUEST['driveLetter']))
-                ->set('state', (int)$_REQUEST['state'])
-                ->set('protected', isset($_REQUEST['protected']) ? 1 : 0)
-                ->set('isEnabled', isset($_REQUEST['isEnabled']) ? 1 : 0)
-                ->set('autoUpdate', isset($_REQUEST['autoUpdate']) ? 1 : 0)
-                ->set('createdBy', self::$FOGUser->get('name'));
-            
-            if (!$Game->save()) {
-                throw new Exception(_('Failed to create game'));
-            }
-            
-            $this->setMessage(_('Game created successfully'));
-            $this->redirect(
-                sprintf(
-                    '?node=%s&sub=edit&id=%s',
-                    $this->node,
-                    $Game->get('id')
-                )
+        $this->attributes = array(
+            array(
+                'class' => 'parser-false filter-false',
+                'width' => 16
+            ),
+            array(),
+        );
+        Route::listem('storagegroup');
+        $StorageGroups = json_decode(
+            Route::getData()
+        );
+        $StorageGroups = $StorageGroups->storagegroups;
+        foreach ((array)$StorageGroups as &$StorageGroup) {
+            $groupinme = in_array(
+                $StorageGroup->id,
+                $this->obj->get('storagegroups')
             );
-        } catch (Exception $e) {
-            $this->setMessage($e->getMessage());
-            $this->redirect($this->formAction);
+            if ($groupinme) {
+                continue;
+            }
+            $this->data[] = array(
+                'storageGroup_id' => $StorageGroup->id,
+                'storageGroup_name' => $StorageGroup->name,
+            );
+            unset($StorageGroup);
         }
-    }
-    
-    /**
-     * Edit game.
-     *
-     * @return void
-     */
-    public function edit()
-    {
-        $this->title = sprintf(
-            '%s: %s',
-            _('Edit'),
-            $this->obj->get('name')
+        self::$HookManager->processEvent(
+            'GAME_ADD_STORAGE_GROUP',
+            array(
+                'data' => &$this->data,
+                'headerData' => &$this->headerData,
+                'templates' => &$this->templates,
+                'attributes' => &$this->attributes
+            )
         );
-        
-        unset($this->headerData);
-        
-        echo '<div id="tab-container" class="tab-container">';
-        echo '<ul class="nav nav-tabs" role="tablist">';
-        echo '<li role="presentation" class="active">';
-        echo '<a href="#game-gen" aria-controls="game-gen" '
-            . 'role="tab" data-toggle="tab">';
-        echo _('General');
-        echo '</a>';
-        echo '</li>';
-        echo '</ul>';
-        echo '<div class="tab-content">';
-        echo '<div role="tabpanel" class="tab-pane active" id="game-gen">';
-        
-        $this->gameForm();
-        
+        echo '<!-- Storage Groups -->';
+        echo '<div class="tab-pane fade" id="game-storage">';
+        echo '<div class="panel panel-info">';
+        echo '<div class="panel-heading text-center">';
+        echo '<h4 class="title">';
+        echo _('Game Storage Groups');
+        echo '</h4>';
+        echo '</div>';
+        echo '<div class="panel-body">';
+        echo '<form class="form-horizontal" method="post" action="'
+            . $this->formAction
+            . '&tab=game-storage">';
+        if (is_array($this->data) && count($this->data)) {
+            echo '<div class="text-center">';
+            echo '<div class="checkbox">';
+            echo '<label for="groupMeShow">';
+            echo '<input type="checkbox" name="groupMeShow" '
+                . 'id="groupMeShow"/>';
+            echo _('Check here to see what storage groups can be added');
+            echo '</label>';
+            echo '</div>';
+            echo '</div>';
+            echo '<br/>';
+            echo '<div class="hiddeninitially groupNotInMe panel panel-info" '
+                . 'id="groupNotInMe">';
+            echo '<div class="panel-heading text-center">';
+            echo '<h4 class="title">';
+            echo _('Add Storage Groups');
+            echo '</h4>';
+            echo '</div>';
+            echo '<div class="panel-body">';
+            $this->render(12);
+            echo '<div class="form-group">';
+            echo '<label for="updategroups" class="control-label col-xs-4">';
+            echo _('Add selected storage groups');
+            echo '</label>';
+            echo '<div class="col-xs-8">';
+            echo '<button type="submit" name="updategroups" class='
+                . '"btn btn-info btn-block" id="updategroups">'
+                . _('Add')
+                . '</button>';
+            echo '</div>';
+            echo '</div>';
+            echo '</div>';
+            echo '</div>';
+        }
+        unset(
+            $this->data,
+            $this->headerData,
+            $this->templates,
+            $this->attributes
+        );
+        $this->headerData = array(
+            '<label for="toggler3">'
+            . '<input type="checkbox" name="toggle-checkbox" '
+            . 'class="toggle-checkboxAction" id="toggler3"/>'
+            . '</label>',
+            '',
+            _('Storage Group Name')
+        );
+        $this->templates = array(
+            '<label for="sg1-${storageGroup_id}">'
+            . '<input type="checkbox" name="storagegroup-rm[]" class='
+            . '"toggle-group" id="sg1-${storageGroup_id}" '
+            . 'value="${storageGroup_id}"/>'
+            . '</label>',
+            '<div class="radio">'
+            . '<input type="radio" class="default" '
+            . 'name="primary" id="group${storageGroup_id}" '
+            . 'value="${storageGroup_id}" ${is_primary}/>'
+            . '<label for="group${storageGroup_id}">'
+            . '</label>'
+            . '</div>',
+            '<a href="?node=storage&editStorageGroup&id=${storageGroup_id}">'
+            . '${storageGroup_name}'
+            . '</a>'
+        );
+        $this->attributes = array(
+            array(
+                'class' => 'parser-false filter-false',
+                'width' => 16
+            ),
+            array(
+                'class' => 'filter-false',
+                'width' => 16
+            ),
+            array(),
+        );
+        foreach ((array)$this->obj->get('storagegroups') as &$groupid) {
+            if (!$groupid > 0) {
+                continue;
+            }
+            $StorageGroup = new StorageGroup($groupid);
+            if (!$StorageGroup->isValid()) {
+                continue;
+            }
+            $primary = '';
+            if ($this->obj->getPrimaryGroup($groupid)) {
+                $primary = 'checked';
+            }
+            $this->data[] = array(
+                'storageGroup_id' => $groupid,
+                'storageGroup_name' => $StorageGroup->get('name'),
+                'is_primary' => $primary
+            );
+            unset($StorageGroup, $groupid);
+        }
+        self::$HookManager->processEvent(
+            'GAME_STORAGE_GROUPS',
+            array(
+                'data' => &$this->data,
+                'headerData' => &$this->headerData,
+                'templates' => &$this->templates,
+                'attributes' => &$this->attributes
+            )
+        );
+        if (is_array($this->data) && count($this->data)) {
+            echo '<div class="panel panel-info">';
+            echo '<div class="panel-heading text-center">';
+            echo '<h4 class="title">';
+            echo _('Game Storage Groups');
+            echo '</h4>';
+            echo '</div>';
+            echo '<div class="panel-body">';
+            $this->render(12);
+            echo '<div class="form-group">';
+            echo '<label for="groupdel" class="control-label col-xs-4">';
+            echo _('Remove selected storage groups');
+            echo '</label>';
+            echo '<div class="col-xs-8">';
+            echo '<button type="submit" name="groupdel" class='
+                . '"btn btn-danger btn-block" id="groupdel">'
+                . _('Remove')
+                . '</button>';
+            echo '</div>';
+            echo '</div>';
+            echo '<div class="form-group">';
+            echo '<label for="primarysel" class="control-label col-xs-4">';
+            echo _('Set primary storage group');
+            echo '</label>';
+            echo '<div class="col-xs-8">';
+            echo '<button type="submit" name="primarysel" class='
+                . '"btn btn-info btn-block" id="primarysel">'
+                . _('Update')
+                . '</button>';
+            echo '</div>';
+            echo '</div>';
+            echo '</div>';
+            echo '</div>';
+        }
+        echo '</form>';
         echo '</div>';
         echo '</div>';
         echo '</div>';
     }
-    
     /**
-     * Edit post.
+     * Submit save/update the game.
      *
      * @return void
      */
     public function editPost()
     {
-        self::$HookManager->processEvent('GAME_EDIT_POST', array('Game' => &$this->obj));
-        
+        self::$HookManager
+            ->processEvent(
+                'GAME_EDIT_POST',
+                array(
+                    'Game' => &$this->obj
+                )
+            );
+        global $tab;
+        $name = trim(
+            filter_input(INPUT_POST, 'name')
+        );
+        $file = trim(
+            filter_input(INPUT_POST, 'file')
+        );
+        $desc = trim(
+            filter_input(INPUT_POST, 'description')
+        );
+        $version = trim(
+            filter_input(INPUT_POST, 'version')
+        );
+        $gametype = (int)filter_input(INPUT_POST, 'gametype');
+        $syncmethod = filter_input(INPUT_POST, 'syncmethod');
+        $protected = (int)isset($_POST['protected_game']);
+        $isEnabled = (int)isset($_POST['isEnabled']);
+        $toReplicate = (int)isset($_POST['toReplicate']);
+        $items = filter_input_array(
+            INPUT_POST,
+            array(
+                'storagegroup' => array(
+                    'flags' => FILTER_REQUIRE_ARRAY
+                ),
+                'storagegroup-rm' => array(
+                    'flags' => FILTER_REQUIRE_ARRAY
+                )
+            )
+        );
+        $storagegroup = $items['storagegroup'];
+        $storagegrouprm = $items['storagegroup-rm'];
+        $primary = (int)filter_input(
+            INPUT_POST,
+            'primary'
+        );
         try {
-            $name = trim($_REQUEST['name']);
-            if (empty($name)) {
-                throw new Exception(_('Game name is required'));
+            switch ($tab) {
+            case 'game-gen':
+                if ($this->obj->get('name') != $name
+                    && self::getClass('GameManager')->exists(
+                        $name,
+                        $this->obj->get('id')
+                    )
+                ) {
+                    throw new Exception(
+                        _('A game already exists with this name!')
+                    );
+                }
+                $exists = self::getClass('GameManager')
+                    ->exists(
+                        $file,
+                        '',
+                        'downloadPath'
+                    );
+                if ($this->obj->get('downloadPath') != $file
+                    && $exists
+                ) {
+                    throw new Exception(
+                        sprintf(
+                            '%s, %s.',
+                            _('Please choose a different path'),
+                            _('this one is already in use by another game')
+                        )
+                    );
+                }
+                $this
+                    ->obj
+                    ->set('name', $name)
+                    ->set('description', $desc)
+                    ->set('version', $version)
+                    ->set('downloadPath', $file)
+                    ->set('state', $isEnabled);
+                break;
+            case 'game-storage':
+                if (isset($_POST['updategroups'])) {
+                    $this->obj->addStorageGroup($storagegroup);
+                } elseif (isset($_POST['primarysel'])) {
+                    $this->obj->setPrimaryGroup($primary);
+                } elseif (isset($_POST['groupdel'])) {
+                    $groupdel = count($storagegrouprm);
+                    $ingroups = count($this->obj->get('storagegroups'));
+                    if ($groupdel < 1) {
+                        throw new Exception(
+                            _('No groups selected to be removed')
+                        );
+                    }
+                    if ($ingroups < 2) {
+                        throw new Exception(
+                            _('You must have at least one group associated')
+                        );
+                    }
+                    $this
+                        ->obj
+                        ->removeStorageGroup(
+                            $storagegrouprm
+                        );
+                }
+                break;
             }
-            
-            $downloadPath = trim($_REQUEST['downloadPath']);
-            if (empty($downloadPath)) {
-                throw new Exception(_('Download path is required'));
-            }
-            
-            $this->obj
-                ->set('name', $name)
-                ->set('description', trim($_REQUEST['description']))
-                ->set('icon', trim($_REQUEST['icon']))
-                ->set('downloadPath', $downloadPath)
-                ->set('executable', trim($_REQUEST['executable']))
-                ->set('parameters', trim($_REQUEST['parameters']))
-                ->set('archivePath', trim($_REQUEST['archivePath']))
-                ->set('syncServer', trim($_REQUEST['syncServer']))
-                ->set('driveLetter', trim($_REQUEST['driveLetter']))
-                ->set('state', (int)$_REQUEST['state'])
-                ->set('protected', isset($_REQUEST['protected']) ? 1 : 0)
-                ->set('isEnabled', isset($_REQUEST['isEnabled']) ? 1 : 0)
-                ->set('autoUpdate', isset($_REQUEST['autoUpdate']) ? 1 : 0);
-            
             if (!$this->obj->save()) {
-                throw new Exception(_('Failed to update game'));
+                throw new Exception(
+                    _('Game update failed!')
+                );
             }
-            
-            $this->setMessage(_('Game updated successfully'));
-            $this->redirect($this->formAction);
+            $hook = 'GAME_UPDATE_SUCCESS';
+            $msg = json_encode(
+                array(
+                    'msg' => _('Game updated!'),
+                    'title' => _('Game Update Success')
+                )
+            );
         } catch (Exception $e) {
-            $this->setMessage($e->getMessage());
-            $this->redirect($this->formAction);
+            $hook = 'GAME_UPDATE_FAIL';
+            $msg = json_encode(
+                array(
+                    'error' => $e->getMessage(),
+                    'title' => _('Game Update Fail')
+                )
+            );
+        }
+        self::$HookManager
+            ->processEvent(
+                $hook,
+                array('Game' => &$this->obj)
+            );
+        echo $msg;
+        exit;
+    }
+    /**
+     * Presents the membership information for games
+     * (both hosts and groups)
+     *
+     * @return void
+     */
+    public function membership()
+    {
+        unset(
+            $this->data,
+            $this->form,
+            $this->headerData,
+            $this->templates,
+            $this->attributes
+        );
+        echo '<!-- Game Membership -->';
+        echo '<div class="col-xs-9">';
+        echo '<div class="tab-pane fade in active" id="'
+            . $this->node
+            . '-membership">';
+        echo '<div class="panel panel-info">';
+        echo '<div class="panel-heading text-center">';
+        echo '<h4 class="title">';
+        echo _('Game Membership');
+        echo '</h4>';
+        echo '</div>';
+        echo '<div class="panel-body">';
+        echo '<ul class="nav nav-tabs" role="tablist">';
+        echo '<li role="presentation" class="active">';
+        echo '<a href="#game-hosts" aria-controls="game-hosts" '
+            . 'role="tab" data-toggle="tab">';
+        echo _('Hosts');
+        echo '</a>';
+        echo '</li>';
+        echo '<li role="presentation">';
+        echo '<a href="#game-groups" aria-controls="game-groups" '
+            . 'role="tab" data-toggle="tab">';
+        echo _('Groups');
+        echo '</a>';
+        echo '</li>';
+        echo '</ul>';
+        echo '<div class="tab-content">';
+        /**
+         * Hosts Tab
+         */
+        $this->gameMembershipHosts();
+        /**
+         * Groups Tab
+         */
+        $this->gameMembershipGroups();
+        echo '</div>';
+        echo '</div>';
+        echo '</div>';
+        echo '</div>';
+        echo '</div>';
+    }
+    /**
+     * Display host membership for games
+     *
+     * @return void
+     */
+    protected function gameMembershipHosts()
+    {
+        unset(
+            $this->data,
+            $this->form,
+            $this->headerData,
+            $this->templates,
+            $this->attributes
+        );
+        echo '<div role="tabpanel" class="tab-pane active" id="game-hosts">';
+        echo '<form class="form-horizontal" method="post" action="'
+            . $this->formAction
+            . '">';
+        $this->headerData = array(
+            '<label for="togglerhost1">'
+            . '<input type="checkbox" name="toggle-checkboxhost1" '
+            . 'class="toggle-checkbox1" id="togglerhost1"/>'
+            . '</label>',
+            _('Host Name')
+        );
+        $this->templates = array(
+            '<label for="host-${host_id}">'
+            . '<input type="checkbox" name="host[]" class="toggle-host1" '
+            . 'id="host-${host_id}" value="${host_id}"/>'
+            . '</label>',
+            '<a href="?node=host&sub=edit&id=${host_id}">${host_name}</a>'
+        );
+        $this->attributes = array(
+            array(
+                'width' => 16,
+                'class' => 'parser-false filter-false'
+            ),
+            array()
+        );
+        Route::names(
+            'host',
+            ['id' => $this->obj->get('hostsnotinme')]
+        );
+        $hostsnotinme = json_decode(
+            Route::getData()
+        );
+        foreach ((array)$hostsnotinme as &$item) {
+            $this->data[] = [
+                'host_id' => $item->id,
+                'host_name' => $item->name
+            ];
+            unset($item);
+        }
+        if (isset($this->data) && count($this->data ?: []) > 0) {
+            echo '<div class="text-center">';
+            echo '<div class="checkbox">';
+            echo '<label for="hostMeShow">';
+            echo '<input type="checkbox" name="hostMeShow" id="hostMeShow"/>';
+            echo _('Check here to see what hosts can be added');
+            echo '</label>';
+            echo '</div>';
+            echo '</div>';
+            echo '<br/>';
+            echo '<div class="hiddeninitially panel panel-info" id="hostNotInMe">';
+            echo '<div class="panel-heading text-center">';
+            echo '<h4 class="title">';
+            echo _('Add Hosts');
+            echo '</h4>';
+            echo '</div>';
+            echo '<div class="panel-body">';
+            $this->render(12);
+            echo '<div class="form-group">';
+            echo '<label for="updatehosts" class="control-label col-xs-4">';
+            echo _('Add selected hosts');
+            echo '</label>';
+            echo '<div class="col-xs-8">';
+            echo '<button type="submit" name="addHosts" '
+                . 'id="updatehosts" class="btn btn-info btn-block">'
+                . _('Add')
+                . '</button>';
+            echo '</div>';
+            echo '</div>';
+            echo '</div>';
+            echo '</div>';
+        }
+        unset(
+            $this->data,
+            $this->form,
+            $this->headerData,
+            $this->templates
+        );
+        $this->headerData = array(
+            '<label for="togglerhost2">'
+            . '<input type="checkbox" name="toggle-checkbox" '
+            . 'class="toggle-checkboxAction" id="togglerhost2"/></label>',
+            _('Host Name')
+        );
+        $this->templates = array(
+            '<label for="hostrm-${host_id}">'
+            . '<input type="checkbox" name="hostdel[]" '
+            . 'value="${host_id}" class="toggle-action" id="'
+            . 'hostrm-${host_id}"/>'
+            . '</label>',
+            '<a href="?node=host&sub=edit&id=${host_id}">${host_name}</a>'
+        );
+        Route::names(
+            'host',
+            ['id' => $this->obj->get('hosts')]
+        );
+        $hostsinme = json_decode(
+            Route::getData()
+        );
+        foreach ((array)$hostsinme as &$item) {
+            $this->data[] = [
+                'host_id' => $item->id,
+                'host_name' => $item->name
+            ];
+            unset($item);
+        }
+        if (isset($this->data) && count($this->data ?: []) > 0) {
+            echo '<div class="panel panel-warning">';
+            echo '<div class="panel-heading text-center">';
+            echo '<h4 class="title">';
+            echo _('Remove Hosts');
+            echo '</h4>';
+            echo '</div>';
+            echo '<div class="panel-body">';
+            $this->render(12);
+            echo '<div class="form-group">';
+            echo '<label for="remhosts" class="control-label col-xs-4">';
+            echo _('Remove selected hosts');
+            echo '</label>';
+            echo '<div class="col-xs-8">';
+            echo '<button type="submit" name="remhosts" class='
+                . '"btn btn-danger btn-block" id="remhosts">'
+                . _('Remove')
+                . '</button>';
+            echo '</div>';
+            echo '</div>';
+            echo '</div>';
+            echo '</div>';
+        }
+        echo '</form>';
+        echo '</div>';
+    }
+    /**
+     * Display group membership for games
+     *
+     * @return void
+     */
+    protected function gameMembershipGroups()
+    {
+        unset(
+            $this->data,
+            $this->form,
+            $this->headerData,
+            $this->templates,
+            $this->attributes
+        );
+        echo '<div role="tabpanel" class="tab-pane" id="game-groups">';
+        echo '<form class="form-horizontal" method="post" action="'
+            . $this->formAction
+            . '">';
+        $this->headerData = array(
+            '<label for="togglergroup1">'
+            . '<input type="checkbox" name="toggle-checkboxgroup1" '
+            . 'class="toggle-checkbox1" id="togglergroup1"/>'
+            . '</label>',
+            _('Group Name')
+        );
+        $this->templates = array(
+            '<label for="group-${group_id}">'
+            . '<input type="checkbox" name="group[]" class="toggle-group1" '
+            . 'id="group-${group_id}" value="${group_id}"/>'
+            . '</label>',
+            '<a href="?node=group&sub=edit&id=${group_id}">${group_name}</a>'
+        );
+        $this->attributes = array(
+            array(
+                'width' => 16,
+                'class' => 'parser-false filter-false'
+            ),
+            array()
+        );
+        Route::names(
+            'group',
+            ['id' => $this->obj->get('groupsnotinme')]
+        );
+        $groupsnotinme = json_decode(
+            Route::getData()
+        );
+        foreach ((array)$groupsnotinme as &$item) {
+            $this->data[] = [
+                'group_id' => $item->id,
+                'group_name' => $item->name
+            ];
+            unset($item);
+        }
+        if (isset($this->data) && count($this->data ?: []) > 0) {
+            echo '<div class="text-center">';
+            echo '<div class="checkbox">';
+            echo '<label for="groupMeShow">';
+            echo '<input type="checkbox" name="groupMeShow" id="groupMeShow"/>';
+            echo _('Check here to see what groups can be added');
+            echo '</label>';
+            echo '</div>';
+            echo '</div>';
+            echo '<br/>';
+            echo '<div class="hiddeninitially panel panel-info" id="groupNotInMe">';
+            echo '<div class="panel-heading text-center">';
+            echo '<h4 class="title">';
+            echo _('Add Groups');
+            echo '</h4>';
+            echo '</div>';
+            echo '<div class="panel-body">';
+            $this->render(12);
+            echo '<div class="form-group">';
+            echo '<label for="updategroups" class="control-label col-xs-4">';
+            echo _('Add selected groups');
+            echo '</label>';
+            echo '<div class="col-xs-8">';
+            echo '<button type="submit" name="addGroups" '
+                . 'id="updategroups" class="btn btn-info btn-block">'
+                . _('Add')
+                . '</button>';
+            echo '</div>';
+            echo '</div>';
+            echo '</div>';
+            echo '</div>';
+        }
+        unset(
+            $this->data,
+            $this->form,
+            $this->headerData,
+            $this->templates
+        );
+        $this->headerData = array(
+            '<label for="togglergroup2">'
+            . '<input type="checkbox" name="toggle-checkbox" '
+            . 'class="toggle-checkboxAction" id="togglergroup2"/></label>',
+            _('Group Name')
+        );
+        $this->templates = array(
+            '<label for="grouprm-${group_id}">'
+            . '<input type="checkbox" name="groupdel[]" '
+            . 'value="${group_id}" class="toggle-action" id="'
+            . 'grouprm-${group_id}"/>'
+            . '</label>',
+            '<a href="?node=group&sub=edit&id=${group_id}">${group_name}</a>'
+        );
+        Route::names(
+            'group',
+            ['id' => $this->obj->get('groups')]
+        );
+        $groupsinme = json_decode(
+            Route::getData()
+        );
+        foreach ((array)$groupsinme as &$item) {
+            $this->data[] = [
+                'group_id' => $item->id,
+                'group_name' => $item->name
+            ];
+            unset($item);
+        }
+        if (isset($this->data) && count($this->data ?: []) > 0) {
+            echo '<div class="panel panel-warning">';
+            echo '<div class="panel-heading text-center">';
+            echo '<h4 class="title">';
+            echo _('Remove Groups');
+            echo '</h4>';
+            echo '</div>';
+            echo '<div class="panel-body">';
+            $this->render(12);
+            echo '<div class="form-group">';
+            echo '<label for="remgroups" class="control-label col-xs-4">';
+            echo _('Remove selected groups');
+            echo '</label>';
+            echo '<div class="col-xs-8">';
+            echo '<button type="submit" name="remgroups" class='
+                . '"btn btn-danger btn-block" id="remgroups">'
+                . _('Remove')
+                . '</button>';
+            echo '</div>';
+            echo '</div>';
+            echo '</div>';
+            echo '</div>';
+        }
+        echo '</form>';
+        echo '</div>';
+    }
+    /**
+     * Handle membership form submissions
+     *
+     * @return void
+     */
+    public function membershipPost()
+    {
+        if (self::$ajax) {
+            return;
+        }
+        $reqitems = filter_input_array(
+            INPUT_POST,
+            array(
+                'host' => array(
+                    'flags' => FILTER_REQUIRE_ARRAY
+                ),
+                'hostdel' => array(
+                    'flags' => FILTER_REQUIRE_ARRAY
+                ),
+                'group' => array(
+                    'flags' => FILTER_REQUIRE_ARRAY
+                ),
+                'groupdel' => array(
+                    'flags' => FILTER_REQUIRE_ARRAY
+                )
+            )
+        );
+        $host = $reqitems['host'];
+        $hostdel = $reqitems['hostdel'];
+        $group = $reqitems['group'];
+        $groupdel = $reqitems['groupdel'];
+        try {
+            if (isset($_POST['addHosts'])) {
+                $this->obj->addHost($host);
+                $msg = _('Hosts added to game successfully');
+            }
+            if (isset($_POST['remhosts'])) {
+                $this->obj->removeHost($hostdel);
+                $msg = _('Hosts removed from game successfully');
+            }
+            if (isset($_POST['addGroups'])) {
+                $this->obj->addGroup($group);
+                $msg = _('Groups added to game successfully');
+            }
+            if (isset($_POST['remgroups'])) {
+                $this->obj->removeGroup($groupdel);
+                $msg = _('Groups removed from game successfully');
+            }
+            if (!$this->obj->save()) {
+                throw new Exception(_('Failed to update game membership'));
+            }
+            $hook = 'GAME_MEMBERSHIP_UPDATE_SUCCESS';
+            self::$HookManager
+                ->processEvent(
+                    $hook,
+                    array('Game' => &$this->obj)
+                );
+            self::setMessage($msg);
+            self::redirect($this->formAction);
+        } catch (Exception $e) {
+            $hook = 'GAME_MEMBERSHIP_UPDATE_FAIL';
+            self::$HookManager
+                ->processEvent(
+                    $hook,
+                    array(
+                        'Game' => &$this->obj,
+                        'error' => $e->getMessage()
+                    )
+                );
+            self::setMessage($e->getMessage());
+            self::redirect($this->formAction);
         }
     }
 }

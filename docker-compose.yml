@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mariadb:10.6
+    container_name: fog-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: fogpassword
+      MYSQL_DATABASE: fog
+      MYSQL_USER: foguser
+      MYSQL_PASSWORD: fogpass
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./game_schema.sql:/docker-entrypoint-initdb.d/01-game_schema.sql
+      - ./game_install.sql:/docker-entrypoint-initdb.d/02-game_install.sql
+      - ./packages/web/lib/fog/game_task_schema.sql:/docker-entrypoint-initdb.d/03-game_task_schema.sql
+      - ./init-db.sql:/docker-entrypoint-initdb.d/00-init.sql
+    networks:
+      - fog-network
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-pfogpassword"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  fogserver:
+    build: .
+    container_name: fog-server
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      - MYSQL_HOST=mysql
+      - MYSQL_DATABASE=fog
+      - MYSQL_USER=foguser
+      - MYSQL_PASSWORD=fogpass
+      - APACHE_RUN_USER=www-data
+      - APACHE_RUN_GROUP=www-data
+    volumes:
+      - ./packages/web:/var/www/html/fog
+      - images-data:/images
+      - ./config.class.php:/var/www/html/fog/lib/fog/config.class.php
+    networks:
+      - fog-network
+    ports:
+      - "80:80"
+      - "21:21"
+      - "69:69/udp"
+      - "9000-9010:9000-9010"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/fog/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: fog-phpmyadmin
+    restart: unless-stopped
+    depends_on:
+      - mysql
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: fogpassword
+      UPLOAD_LIMIT: 100M
+    networks:
+      - fog-network
+    ports:
+      - "8080:80"
+
+networks:
+  fog-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
+    driver: local
+  images-data:
+    driver: local

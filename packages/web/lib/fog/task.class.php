@@ -59,6 +59,7 @@ class Task extends TaskType
         'isDebug' => 'taskIsDebug',
         'imageID' => 'taskImageID',
         'wol' => 'taskWOL',
+        'gameID' => 'taskGameID',
     );
     /**
      * The required fields.
@@ -81,7 +82,8 @@ class Task extends TaskType
         'type',
         'state',
         'storagenode',
-        'storagegroup'
+        'storagegroup',
+        'game'
     );
     /**
      * Database -> Class field relationships
@@ -118,6 +120,11 @@ class Task extends TaskType
             'id',
             'storagegroupID',
             'storagegroup'
+        ),
+        'Game' => array(
+            'id',
+            'gameID',
+            'game'
         )
     );
     /**
