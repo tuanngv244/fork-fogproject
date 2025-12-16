@@ -1,0 +1,30 @@
+FOG GAME MODULE - QUICK START
+=============================
+
+INSTALLATION:
+1. Upload package to FOG server:
+   scp -r game_module_package root@YOUR_FOG_IP:/tmp/
+
+2. SSH to server and run:
+   cd /tmp/game_module_package
+   chmod +x integrate_game_module.sh
+   sudo bash integrate_game_module.sh
+
+3. Access module:
+   http://YOUR_FOG_IP/fog/management/?node=game
+
+LOGIN:
+   Username: fog
+   Password: password
+
+PACKAGE CONTENTS:
+- game.class.php (Model)
+- gamemanager.class.php (Manager) 
+- gamemanagementpage.class.php (Controller)
+- game_install.sql (Database with 5 sample games)
+- integrate_game_module.sh (Auto installer)
+- open_game_module.html (Quick access page)
+
+For detailed docs, see GAME-MODULE-INTEGRATION.md
+
+Created: December 16, 2025
