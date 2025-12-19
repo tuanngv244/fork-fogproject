@@ -7,13 +7,26 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-// Path relative to fogproject directory
-$fogBasePath = __DIR__ . '/packages/web/commons/base.inc.php';
+// Try multiple possible FOG installation paths
+$possiblePaths = [
+    '/var/www/html/fog/commons/base.inc.php',
+    '/var/www/fog/commons/base.inc.php',
+    '/var/www/html/fog/lib/fog/config.class.php',
+];
 
-if (!file_exists($fogBasePath)) {
-    die("ERROR: Cannot find FOG base.inc.php at: {$fogBasePath}\n");
+$fogBasePath = null;
+foreach ($possiblePaths as $path) {
+    if (file_exists($path)) {
+        $fogBasePath = $path;
+        break;
+    }
 }
 
+if (!$fogBasePath) {
+    die("ERROR: Cannot find FOG installation. Tried:\n" . implode("\n", $possiblePaths) . "\n");
+}
+
+echo "Using FOG path: {$fogBasePath}\n\n";
 require $fogBasePath;
 
 echo "=== FOG Task Creation Debug Script ===\n\n";
